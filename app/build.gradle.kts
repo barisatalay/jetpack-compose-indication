@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.barisatalay.jetpackcomposeindication"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.barisatalay.jetpackcomposeindication"
