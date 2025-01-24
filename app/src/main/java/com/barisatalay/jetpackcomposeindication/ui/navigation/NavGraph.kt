@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.barisatalay.jetpackcomposeindication.ui.screen.BubblingScreen
+import com.barisatalay.jetpackcomposeindication.ui.screen.ChristmasButtonScreen
 import com.barisatalay.jetpackcomposeindication.ui.screen.CustomRipple1Screen
 import com.barisatalay.jetpackcomposeindication.ui.screen.CustomRipple2Screen
 import com.barisatalay.jetpackcomposeindication.ui.screen.FillableScreen
@@ -32,6 +33,9 @@ fun NavigationStack(
     ) {
         composable(route = Screen.Main.route) {
             MainScreen(navController = navController)
+        }
+        composable(route = Screen.ChristmasButton.route) {
+            ChristmasButtonScreen()
         }
         composable(route = Screen.RememberRipple.route) {
             RememberRippleScreen()
@@ -71,6 +75,7 @@ fun NavigationStack(
 
 sealed class Screen(val route: String) {
     data object Main : Screen("main_screen")
+    data object ChristmasButton : Screen("christmas_button_screen")
     data object RememberRipple : Screen("remember_ripple_screen")
     data object Ripple : Screen("ripple_screen")
     data object CustomRipple1 : Screen("custom_ripple1_screen")

@@ -35,6 +35,14 @@ fun MainScreen(
         item {
             Button(
                 modifier = Modifier.height(65.dp),
+                onClick = { navController.navigate(route = Screen.ChristmasButton.route) }
+            ) {
+                Text(text = "ChristmasButton Screen", textAlign = TextAlign.Center)
+            }
+        }
+        item {
+            Button(
+                modifier = Modifier.height(65.dp),
                 onClick = { navController.navigate(route = Screen.Ripple.route) }
             ) {
                 Text(text = "Ripple Screen", textAlign = TextAlign.Center)
