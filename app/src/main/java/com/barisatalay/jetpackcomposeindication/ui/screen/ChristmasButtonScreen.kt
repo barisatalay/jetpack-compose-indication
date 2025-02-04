@@ -288,7 +288,7 @@ private class ChristmasIndicationNode(
                 Snow(
                     x = Random.nextDouble(0.0, to.toDouble()).toInt(),
                     y = Random.nextFloat() * 10f * -1,
-                    radius = Random.nextFloat() * 2f + 8f, // Snowflake size
+                    radius = Random.nextFloat() * 2f + 4f, // Snowflake size
                     speed = speed + Random.nextFloat() * 3.2f + 1f,   // Falling speed
                     waveProperties = WaveProperties(
                         length = Math.PI * Random.nextInt(
@@ -312,7 +312,7 @@ private class ChristmasIndicationNode(
         drawContent()
         if (currentInteraction is PressInteraction.Press) {
             snowflakes.forEachIndexed { index, snow ->
-                val offsetWithSpeed = offsetY.value % 2 * snow.speed
+                val offsetWithSpeed = (offsetY.value % 2) * snow.speed
                 var newY = snow.y
                 var newX = snow.x
                 val isNewStateOut = remainingHeight != -1f && (newY + offsetWithSpeed) >= remainingHeight
