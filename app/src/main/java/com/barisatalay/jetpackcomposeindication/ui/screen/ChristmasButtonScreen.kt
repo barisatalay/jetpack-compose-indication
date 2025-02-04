@@ -57,12 +57,14 @@ private const val FLAKE_CREATE_SPEED = 100L
 
 private const val SNOW_AMPLITUDE_ANIMATION_DURATION = 3_000
 
+private const val SNOW_ACCUMULATE_MULTIPLIER = 1f
+
 @Composable
 fun ChristmasButtonScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFF7D08A))
     ) {
         var valueWaveAmplitude by remember { mutableFloatStateOf(50f) }
         var valueWaveLength by remember { mutableFloatStateOf(3f) }
@@ -135,6 +137,7 @@ fun ChristmasButtonScreen() {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
                 .fillMaxWidth(fraction = 0.9f)
                 .height(350.dp)
                 .clip(RoundedCornerShape(10.dp))
@@ -192,7 +195,6 @@ data class WaveProperties(
 private data class Snow(
     val x: Int,
     val y: Float,
-    val isLocked: Boolean,
     val radius: Float,
     val speed: Float,
     val waveProperties: WaveProperties,
@@ -213,7 +215,8 @@ private class ChristmasIndicationNode(
     private val snowAmplitudeProgress = Animatable(0f)
 
     private var contentSize: IntSize = IntSize.Zero
-    private val freeX = mutableMapOf<Int, Int>()
+    private var remainingHeight = -1f
+    private var accumulatedSnowflakes = 0
 
     override fun onAttach() {
         coroutineScope.launch {
@@ -230,15 +233,21 @@ private class ChristmasIndicationNode(
     override fun onRemeasured(size: IntSize) {
         super.onRemeasured(size)
         contentSize = size
+        assignRemainingHeight()
     }
 
     private fun onPressed() {
+        assignRemainingHeight()
         animateToPressed()
         createSnowflakes()
     }
 
+    private fun assignRemainingHeight() {
+        remainingHeight = contentSize.height.toFloat()
+    }
+
     private fun printLog(msg: String) {
-        Log.d("baris-", msg)
+        Log.d("Christmas-", msg)
     }
 
     private fun animateToPressed() {
@@ -278,12 +287,9 @@ private class ChristmasIndicationNode(
             snowflakes.add(
                 Snow(
                     x = Random.nextDouble(0.0, to.toDouble()).toInt(),
-                    // x = if (Random.nextBoolean()) 0.39f else 0.45f,
                     y = Random.nextFloat() * 10f * -1,
                     radius = Random.nextFloat() * 2f + 8f, // Snowflake size
-                    // radius = 10f, // Snowflake size
                     speed = speed + Random.nextFloat() * 3.2f + 1f,   // Falling speed
-                    isLocked = false,
                     waveProperties = WaveProperties(
                         length = Math.PI * Random.nextInt(
                             from = 1,
@@ -306,51 +312,48 @@ private class ChristmasIndicationNode(
         drawContent()
         if (currentInteraction is PressInteraction.Press) {
             snowflakes.forEachIndexed { index, snow ->
-                var remainingHeight = freeX[snow.x] ?: -1
-                if (remainingHeight == -1) {
-                    // create column if not exists
-                    remainingHeight = contentSize.height
-                    freeX[snow.x] = remainingHeight
-                }
-                val offset = offsetY.value % 2
-                val offsetWithSpeed = offset * snow.speed
+                val offsetWithSpeed = offsetY.value % 2 * snow.speed
                 var newY = snow.y
-
-                val isNewStateOut = (newY + offsetWithSpeed) >= remainingHeight
                 var newX = snow.x
+                val isNewStateOut = remainingHeight != -1f && (newY + offsetWithSpeed) >= remainingHeight
 
-                if (isNewStateOut.not() && snow.isLocked.not()) {
+                if (isNewStateOut.not()) {
                     newY += offsetWithSpeed
 
-                    val waveDirection = if (snow.waveProperties.isForward) 1 else -1
-                    val sin = sin(snowAmplitudeProgress.value * snow.waveProperties.length).toFloat()
-
-                    newX += (waveDirection * snow.waveProperties.amplitude * sin).toInt()
+                    newX += calculateWind(snow.waveProperties)
                 }
 
-                //printLog("drawCircle: x=$newX, y=$newY")
-
                 drawCircle(Color.White, radius = snow.radius, center = Offset(newX.toFloat(), newY))
-                /*drawRect(
-                    color = Color.Cyan,
+
+                drawRect(
+                    color = Color.White,
                     topLeft = Offset(
                         x = 0f,
-                        y = 100f
+                        y = remainingHeight
                     ),
                     size = Size(
                         width = size.width,
-                        height = 100f
+                        height = size.height - remainingHeight
                     )
-                )*/
+                )
                 if (isNewStateOut.not()) {
                     snowflakes[index] = snow.copy(y = newY)
-                } else if (snow.isLocked.not()) {
-                    freeX[snow.x] = freeX[snow.x]!! - snow.radius.toInt()
+                } else {
+                    accumulatedSnowflakes += 1
 
-                    printLog("freeX[${snow.x}] = ${freeX[snow.x]!!} - ${snow.radius.toInt()}")
-                    snowflakes[index] = snow.copy(isLocked = true)
+                    if (accumulatedSnowflakes % size.width.toInt() == 0) {
+                        remainingHeight -= SNOW_ACCUMULATE_MULTIPLIER
+                        accumulatedSnowflakes = 0
+                    }
                 }
             }
         }
+    }
+
+    private fun calculateWind(waveProperties: WaveProperties): Int {
+        val waveDirection = if (waveProperties.isForward) 1 else -1
+        val sin = sin(snowAmplitudeProgress.value * waveProperties.length).toFloat()
+
+        return (waveDirection * waveProperties.amplitude * sin).toInt()
     }
 }
