@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DelegatableNode
@@ -67,7 +68,7 @@ fun ChristmasButtonScreen() {
         var valueWaveLength by remember { mutableFloatStateOf(3f) }
         var valueSpeed by remember { mutableFloatStateOf(1f) }
 
-        Column(modifier = Modifier.align(Alignment.Center)) {
+        Column(modifier = Modifier.align(Alignment.TopCenter)) {
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 color = Color.Red,
@@ -135,7 +136,7 @@ fun ChristmasButtonScreen() {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth(fraction = 0.9f)
-                .height(156.dp)
+                .height(350.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(Color.Red)
                 .clickable(interactionSource = null, indication = ChristmasIndication(
@@ -189,7 +190,7 @@ data class WaveProperties(
 )
 
 private data class Snow(
-    val x: Float,
+    val x: Int,
     val y: Float,
     val isLocked: Boolean,
     val radius: Float,
@@ -212,7 +213,7 @@ private class ChristmasIndicationNode(
     private val snowAmplitudeProgress = Animatable(0f)
 
     private var contentSize: IntSize = IntSize.Zero
-    private val freeX = mutableMapOf<Float, Int>()
+    private val freeX = mutableMapOf<Int, Int>()
 
     override fun onAttach() {
         coroutineScope.launch {
@@ -272,13 +273,15 @@ private class ChristmasIndicationNode(
     private fun createSnowflakes() = coroutineScope.launch {
         printLog("createSnowflakes:begin")
         while (currentInteraction is PressInteraction.Press) {
+            val to = if (contentSize.width == 0) Random.nextFloat() else contentSize.width
+
             snowflakes.add(
                 Snow(
-                    x = Random.nextFloat(),
+                    x = Random.nextDouble(0.0, to.toDouble()).toInt(),
                     // x = if (Random.nextBoolean()) 0.39f else 0.45f,
                     y = Random.nextFloat() * 10f * -1,
-                    //radius = Random.nextFloat() * 2f + 2f, // Snowflake size
-                    radius = 10f, // Snowflake size
+                    radius = Random.nextFloat() * 2f + 8f, // Snowflake size
+                    // radius = 10f, // Snowflake size
                     speed = speed + Random.nextFloat() * 3.2f + 1f,   // Falling speed
                     isLocked = false,
                     waveProperties = WaveProperties(
@@ -313,8 +316,8 @@ private class ChristmasIndicationNode(
                 val offsetWithSpeed = offset * snow.speed
                 var newY = snow.y
 
-                val isNewStateOut = (newY + offsetWithSpeed) >= remainingHeight//size.height
-                var newX = snow.x * size.width
+                val isNewStateOut = (newY + offsetWithSpeed) >= remainingHeight
+                var newX = snow.x
 
                 if (isNewStateOut.not() && snow.isLocked.not()) {
                     newY += offsetWithSpeed
@@ -322,19 +325,29 @@ private class ChristmasIndicationNode(
                     val waveDirection = if (snow.waveProperties.isForward) 1 else -1
                     val sin = sin(snowAmplitudeProgress.value * snow.waveProperties.length).toFloat()
 
-                    newX += waveDirection * snow.waveProperties.amplitude * sin
+                    newX += (waveDirection * snow.waveProperties.amplitude * sin).toInt()
                 }
 
                 //printLog("drawCircle: x=$newX, y=$newY")
 
-                drawCircle(Color.White, radius = snow.radius, center = Offset(newX, newY))
-
+                drawCircle(Color.White, radius = snow.radius, center = Offset(newX.toFloat(), newY))
+                /*drawRect(
+                    color = Color.Cyan,
+                    topLeft = Offset(
+                        x = 0f,
+                        y = 100f
+                    ),
+                    size = Size(
+                        width = size.width,
+                        height = 100f
+                    )
+                )*/
                 if (isNewStateOut.not()) {
                     snowflakes[index] = snow.copy(y = newY)
                 } else if (snow.isLocked.not()) {
-                    freeX[snow.x] = freeX[snow.x]!! - 1
+                    freeX[snow.x] = freeX[snow.x]!! - snow.radius.toInt()
 
-                    printLog("freeX[${snow.x}] = ${freeX[snow.x]!!} - 1")
+                    printLog("freeX[${snow.x}] = ${freeX[snow.x]!!} - ${snow.radius.toInt()}")
                     snowflakes[index] = snow.copy(isLocked = true)
                 }
             }
